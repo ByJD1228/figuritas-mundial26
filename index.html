@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Figuritas Mundial 26 🏆</title>
+  <style>
+    :root {
+      --green: #16a34a; --green-light: #dcfce7;
+      --red: #dc2626; --red-light: #fee2e2;
+      --amber: #d97706; --amber-light: #fef3c7;
+      --gray: #6b7280; --gray-light: #f3f4f6;
+      --bg: #0f172a; --surface: #1e293b; --card: #263347;
+      --gold: #f59e0b; --text: #f1f5f9; --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; }
+
+    header { background: linear-gradient(135deg, #064e3b, #065f46); padding: 20px 24px; }
+    header h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+    header p { color: #a7f3d0; font-size: 0.85rem; margin-top: 2px; }
+
+    .stats-bar { display: flex; gap: 12px; padding: 16px 24px; background: var(--surface); border-bottom: 1px solid #334155; flex-wrap: wrap; }
+    .stat { display: flex; flex-direction: column; align-items: center; background: var(--card); border-radius: 10px; padding: 10px 18px; min-width: 90px; }
+    .stat-val { font-size: 1.5rem; font-weight: 800; }
+    .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+    .stat.collected .stat-val { color: #4ade80; }
+    .stat.needed .stat-val { color: #f87171; }
+    .stat.swaps .stat-val { color: #fbbf24; }
+    .stat.total .stat-val { color: #818cf8; }
+
+    .controls { display: flex; gap: 10px; padding: 14px 24px; background: var(--bg); border-bottom: 1px solid #1e293b; flex-wrap: wrap; align-items: center; }
+    .search { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid #334155; border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 0.9rem; outline: none; }
+    .search:focus { border-color: #4ade80; }
+    .filter-btn { background: var(--surface); border: 1px solid #334155; color: var(--muted); border-radius: 8px; padding: 7px 14px; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
+    .filter-btn:hover, .filter-btn.active { background: #064e3b; border-color: #16a34a; color: #4ade80; }
+
+    .sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; padding: 20px 24px; }
+
+    .section-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #334155; transition: border-color 0.2s; }
+    .section-card:hover { border-color: #475569; }
+    .section-card.all-done { border-color: #16a34a44; }
+
+    .card-header { padding: 12px 14px 8px; display: flex; align-items: center; gap: 8px; }
+    .card-flag { font-size: 1.6rem; line-height: 1; }
+    .card-info { flex: 1; }
+    .card-name { font-weight: 700; font-size: 0.95rem; }
+    .card-sub { font-size: 0.75rem; color: var(--muted); }
+    .card-badge { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+    .badge-done { background: #16a34a22; color: #4ade80; border: 1px solid #16a34a44; }
+    .badge-need { background: #dc262622; color: #f87171; border: 1px solid #dc262644; }
+
+    .progress-bar { height: 4px; background: #334155; margin: 0 14px 8px; border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #16a34a, #4ade80); border-radius: 2px; transition: width 0.4s ease; }
+
+    .sticker-grid { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 14px 14px; }
+    .sticker { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; user-select: none; }
+    .sticker:hover { transform: scale(1.12); }
+    .sticker.have { background: #16a34a22; color: #4ade80; border-color: #16a34a44; }
+    .sticker.need { background: #dc262622; color: #f87171; border-color: #dc262644; }
+    .sticker.swap { background: #d9770622; color: #fbbf24; border-color: #d9770644; }
+    .sticker.need:hover { background: #16a34a22; border-color: #16a34a; }
+
+    .legend { display: flex; gap: 14px; padding: 12px 24px; background: var(--surface); font-size: 0.78rem; color: var(--muted); border-top: 1px solid #334155; }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .dot-have { background: #16a34a; }
+    .dot-need { background: #dc2626; }
+    .dot-swap { background: #d97706; }
+
+    .swaps-panel { display: none; padding: 20px 24px; }
+    .swaps-panel.visible { display: block; }
+    .swap-group { margin-bottom: 16px; }
+    .swap-group-header { font-size: 0.85rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .swap-numbers { display: flex; flex-wrap: wrap; gap: 5px; }
+
+    .empty-msg { text-align: center; padding: 40px; color: var(--muted); font-size: 0.9rem; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; opacity: 0; transform: translateY(10px); transition: all 0.25s; pointer-events: none; z-index: 999; }
+    .toast.show { opacity: 1; transform: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🏆 Figuritas — Mundial USA·MEX·CAN 2026</h1>
+    <p>Haz clic en una figurita roja para marcarla como conseguida</p>
+  </header>
+
+  <div class="stats-bar" id="statsBar"></div>
+
+  <div class="controls">
+    <input class="search" id="search" placeholder="🔍 Buscar país..." oninput="render()" />
+    <button class="filter-btn active" onclick="setFilter('all',this)">Todos</button>
+    <button class="filter-btn" onclick="setFilter('need',this)">Me faltan</button>
+    <button class="filter-btn" onclick="setFilter('swaps',this)">Mis cambios</button>
+    <button class="filter-btn" onclick="setFilter('done',this)">Completos</button>
+    <button class="filter-btn" id="resetBtn" onclick="confirmReset()" style="margin-left:auto;color:#f87171">Resetear</button>
+  </div>
+
+  <div class="sections" id="sections"></div>
+  <div class="swaps-panel" id="swapsPanel"></div>
+
+  <div class="legend">
+    <span class="legend-item"><span class="legend-dot dot-have"></span> Tengo</span>
+    <span class="legend-item"><span class="legend-dot dot-need"></span> Me falta</span>
+    <span class="legend-item"><span class="legend-dot dot-swap"></span> Tengo de más (cambio)</span>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  // ─── DATA ───────────────────────────────────────────────────────────────
+  const r = (a, b) => Array.from({length: b-a+1}, (_,i) => String(a+i));
+
+  const SECTIONS_DEF = [
+    { id:'fwc1', code:'FWC', emoji:'🏆', name:'FWC Trophy',   stickers:['00',...r(1,10)], initNeed:['00','1','2'],      initSwaps:[] },
+    { id:'fwc2', code:'FWC', emoji:'🌎', name:'FWC Globe',    stickers:r(1,10),           initNeed:['8'],               initSwaps:[] },
+    { id:'fwc3', code:'FWC', emoji:'📜', name:'FWC Scroll',   stickers:r(1,20),           initNeed:['16','18','19'],    initSwaps:['11','12','13','14'] },
+    { id:'mex',  code:'MEX', emoji:'🇲🇽', name:'México',      stickers:r(1,20), initNeed:['11','15','16','17','18'], initSwaps:['1','9'] },
+    { id:'rsa',  code:'RSA', emoji:'🇿🇦', name:'Sudáfrica',   stickers:r(1,20), initNeed:['6','10','11','13','14','15','16'], initSwaps:['2','3','4','5','8','20'] },
+    { id:'kor',  code:'KOR', emoji:'🇰🇷', name:'Corea del Sur', stickers:r(1,20), initNeed:['2','4','5','6','7','9','11','13','14','16','18'], initSwaps:['15','19'] },
+    { id:'cze',  code:'CZE', emoji:'🇨🇿', name:'República Checa', stickers:r(1,20), initNeed:['1','3','6','10','14','15','16','17'], initSwaps:['4','11'] },
+    { id:'can',  code:'CAN', emoji:'🇨🇦', name:'Canadá',      stickers:r(1,20), initNeed:['1','2','4','6','7','10','11','13','15','18','19'], initSwaps:[] },
+    { id:'bih',  code:'BIH', emoji:'🇧🇦', name:'Bosnia y Herz.', stickers:r(1,20), initNeed:['1','3','5','6','7','10','11','12','13','15','16','18','20'], initSwaps:[] },
+    { id:'qat',  code:'QAT', emoji:'🇶🇦', name:'Qatar',       stickers:r(1,20), initNeed:['2','4','5','6','7','8','12','13','15','16','17','18','19'], initSwaps:['11','14'] },
+    { id:'sui',  code:'SUI', emoji:'🇨🇭', name:'Suiza',       stickers:r(1,20), initNeed:['2','6','16'], initSwaps:[] },
+    { id:'bra',  code:'BRA', emoji:'🇧🇷', name:'Brasil',      stickers:r(1,20), initNeed:['1','3','4','5','7','8','9','11','12','15','17','18','19'], initSwaps:['10','16','20'] },
+    { id:'mar',  code:'MAR', emoji:'🇲🇦', name:'Marruecos',   stickers:r(1,20), initNeed:['1','2','5','8','9','10','12','13','15','16','17','18','19'], initSwaps:['6','7','11','20'] },
+    { id:'hai',  code:'HAI', emoji:'🇭🇹', name:'Haití',       stickers:r(1,20), initNeed:['1','3','4','6','7','8','10','11','12','17','19','20'], initSwaps:['2','15'] },
+    { id:'sco',  code:'SCO', emoji:'🏴󠁧󠁢󠁳󠁣󠁴󠁿', name:'Escocia',   stickers:r(1,20), initNeed:['4','5','6','7','8','9','11','13','14','15','16'], initSwaps:['3','17'] },
+    { id:'usa',  code:'USA', emoji:'🇺🇸', name:'Estados Unidos', stickers:r(1,20), initNeed:['1','2','13','17','18'], initSwaps:['6','16'] },
+    { id:'par',  code:'PAR', emoji:'🇵🇾', name:'Paraguay',    stickers:r(1,20), initNeed:['4','5','6','7','8','10','11','12','13','14','15','16','18','19'], initSwaps:['20'] },
+    { id:'aus',  code:'AUS', emoji:'🇦🇺', name:'Australia',   stickers:r(1,20), initNeed:['1','13','19'], initSwaps:['8','12','14','17','18'] },
+    { id:'tur',  code:'TUR', emoji:'🇹🇷', name:'Turquía',     stickers:r(1,20), initNeed:['1','2','3','4','5','8','9','10','11','12','13','14','15','17','18'], initSwaps:[] },
+    { id:'ger',  code:'GER', emoji:'🇩🇪', name:'Alemania',    stickers:r(1,20), initNeed:['3','4','5','6','10','12','13','14','17','19'], initSwaps:['11','20'] },
+    { id:'cuw',  code:'CUW', emoji:'🇨🇼', name:'Curazao',     stickers:r(1,20), initNeed:['3','4','5','9','10','12','13','14','18','19'], initSwaps:[] },
+    { id:'civ',  code:'CIV', emoji:'🇨🇮', name:'Costa de Marfil', stickers:r(1,20), initNeed:['1','2','4','5','6','7','8','12','14','17','18','19','20'], initSwaps:['10'] },
+    { id:'ecu',  code:'ECU', emoji:'🇪🇨', name:'Ecuador',     stickers:r(1,20), initNeed:['4','5','6','8','11','12','13','16','18','20'], initSwaps:[] },
+    { id:'ned',  code:'NED', emoji:'🇳🇱', name:'Países Bajos', stickers:r(1,20), initNeed:['2','4','5','6','10','12','14','15','16','17','18','19','20'], initSwaps:[] },
+    { id:'jpn',  code:'JPN', emoji:'🇯🇵', name:'Japón',       stickers:r(1,20), initNeed:['2','3','5','6','7','8','9','10','12','15','17'], initSwaps:['13','19'] },
+    { id:'swe',  code:'SWE', emoji:'🇸🇪', name:'Suecia',      stickers:r(1,20), initNeed:['1','2','3','5','6','7','8','9','10','11','13','15','16','19','20'], initSwaps:[] },
+    { id:'tun',  code:'TUN', emoji:'🇹🇳', name:'Túnez',       stickers:r(1,20), initNeed:['7','11','12','13','14','17','18','19','20'], initSwaps:['1'] },
+    { id:'bel',  code:'BEL', emoji:'🇧🇪', name:'Bélgica',     stickers:r(1,20), initNeed:['1','4','6','16','18','20'], initSwaps:['9','12','14','17'] },
+    { id:'egy',  code:'EGY', emoji:'🇪🇬', name:'Egipto',      stickers:r(1,20), initNeed:['1','5','8','9','10','11','14','16','17','18','19','20'], initSwaps:[] },
+    { id:'irn',  code:'IRN', emoji:'🇮🇷', name:'Irán',        stickers:r(1,20), initNeed:['1','3','6','7','10','11','15','16','19','20'], initSwaps:['5','8','17','18'] },
+    { id:'nzl',  code:'NZL', emoji:'🇳🇿', name:'Nueva Zelanda', stickers:r(1,20), initNeed:['1','2','3','5','7','9','14','18'], initSwaps:['15'] },
+    { id:'esp',  code:'ESP', emoji:'🇪🇸', name:'España',      stickers:r(1,20), initNeed:['4','8','12','13','14','16'], initSwaps:['6','7','10','11','15','19'] },
+    { id:'cpv',  code:'CPV', emoji:'🇨🇻', name:'Cabo Verde',  stickers:r(1,20), initNeed:['1','2','3','4','5','6','7','9','10','11','12','13','14','16','18','20'], initSwaps:[] },
+    { id:'ksa',  code:'KSA', emoji:'🇸🇦', name:'Arabia Saudita', stickers:r(1,20), initNeed:['1','2','3','5','6','7','8','10','11','12','15','16','19','20'], initSwaps:[] },
+    { id:'uru',  code:'URU', emoji:'🇺🇾', name:'Uruguay',     stickers:r(1,20), initNeed:['2','3','5','6','7','10','11','13','17','19'], initSwaps:['20'] },
+    { id:'fra',  code:'FRA', emoji:'🇫🇷', name:'Francia',     stickers:r(1,20), initNeed:['2','3','5','8','11','12','13','19','20'], initSwaps:['4','18'] },
+    { id:'sen',  code:'SEN', emoji:'🇸🇳', name:'Senegal',     stickers:r(1,20), initNeed:['4','5','6','7','8','9','10','11','12','13','14','17','18'], initSwaps:['1','2','19','20'] },
+    { id:'irq',  code:'IRQ', emoji:'🇮🇶', name:'Irak',        stickers:r(1,20), initNeed:['1','3','4','5','6','7','8','9','10','12','13','14','17','18','20'], initSwaps:[] },
+    { id:'nor',  code:'NOR', emoji:'🇳🇴', name:'Noruega',     stickers:r(1,20), initNeed:['2','3','4','5','8','12','16','17','18','20'], initSwaps:[] },
+    { id:'arg',  code:'ARG', emoji:'🇦🇷', name:'Argentina',   stickers:r(1,20), initNeed:['1','2','4'], initSwaps:['7','11','15','16','19','20'] },
+    { id:'alg',  code:'ALG', emoji:'🇩🇿', name:'Argelia',     stickers:r(1,20), initNeed:['1','2','4','6','7','10','11','15','16','18','20'], initSwaps:['14'] },
+    { id:'aut',  code:'AUT', emoji:'🇦🇹', name:'Austria',     stickers:r(1,20), initNeed:['1','4','9','10','11','12','13','14','17','19'], initSwaps:['2','7'] },
+    { id:'jor',  code:'JOR', emoji:'🇯🇴', name:'Jordania',    stickers:r(1,20), initNeed:['5','8','9','11','12','14','16','17','20'], initSwaps:['10','15','19'] },
+    { id:'por',  code:'POR', emoji:'🇵🇹', name:'Portugal',    stickers:r(1,20), initNeed:['2','4','6','7','8','9','10','11','12','14','17'], initSwaps:['1'] },
+    { id:'cod',  code:'COD', emoji:'🇨🇩', name:'Rep. D. Congo', stickers:r(1,20), initNeed:['2','3','4','8','9','10','13','14','18','20'], initSwaps:['1','16'] },
+    { id:'uzb',  code:'UZB', emoji:'🇺🇿', name:'Uzbekistán',  stickers:r(1,20), initNeed:['1','2','3','4','5','6','7','8','9','10','11','13','14','15','16','17','19','20'], initSwaps:[] },
+    { id:'col',  code:'COL', emoji:'🇨🇴', name:'Colombia',    stickers:r(1,20), initNeed:['1','2','4','5','6','8','9','10','12','14','15','17','18','19','20'], initSwaps:['13'] },
+    { id:'eng',  code:'ENG', emoji:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', name:'Inglaterra', stickers:r(1,20), initNeed:['1','3','7','10','11','13','15','19','20'], initSwaps:['8','9','12','17','18'] },
+    { id:'cro',  code:'CRO', emoji:'🇭🇷', name:'Croacia',     stickers:r(1,20), initNeed:['1','2','4','5','6','9','10','11','12','13','15','16','18','19','20'], initSwaps:['17'] },
+    { id:'gha',  code:'GHA', emoji:'🇬🇭', name:'Ghana',       stickers:r(1,20), initNeed:['1','2','4','6','8','10','17','18','19'], initSwaps:['14'] },
+    { id:'pan',  code:'PAN', emoji:'🇵🇦', name:'Panamá',      stickers:r(1,20), initNeed:['4','6','7','11','16','19','20'], initSwaps:['9','12','14','17','18'] },
+  ];
+
+  // ─── STATE ──────────────────────────────────────────────────────────────
+  const STORAGE_KEY = 'figuritas_mundial26';
+
+  function loadState() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    // First load: build from initial data
+    const state = {};
+    SECTIONS_DEF.forEach(s => {
+      state[s.id] = { need: [...s.initNeed], swaps: [...s.initSwaps] };
+    });
+    return state;
+  }
+
+  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); }
+
+  let appState = loadState();
+  let currentFilter = 'all';
+
+  function getStickerState(sectionId, num) {
+    const s = appState[sectionId];
+    if (s.need.includes(num)) return 'need';
+    if (s.swaps.includes(num)) return 'swap';
+    return 'have';
+  }
+
+  function toggleSticker(sectionId, num) {
+    const s = appState[sectionId];
+    const state = getStickerState(sectionId, num);
+    if (state === 'need') {
+      s.need = s.need.filter(n => n !== num);
+      showToast(`✅ Figurita conseguida`);
+    } else if (state === 'have') {
+      s.swaps.push(num);
+      showToast(`🔁 Marcada como cambio`);
+    } else if (state === 'swap') {
+      s.swaps = s.swaps.filter(n => n !== num);
+      showToast(`📦 Ya no es cambio`);
+    }
+    saveState();
+    render();
+  }
+
+  // ─── RENDER ─────────────────────────────────────────────────────────────
+  let filter = 'all';
+
+  function setFilter(f, btn) {
+    filter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function render() {
+    renderStats();
+    const query = document.getElementById('search').value.toLowerCase();
+
+    if (filter === 'swaps') {
+      document.getElementById('sections').style.display = 'none';
+      document.getElementById('swapsPanel').classList.add('visible');
+      renderSwapsPanel();
+      return;
+    }
+    document.getElementById('sections').style.display = '';
+    document.getElementById('swapsPanel').classList.remove('visible');
+    renderSections(query);
+  }
+
+  function renderStats() {
+    let totalStickers = 0, totalHave = 0, totalNeed = 0, totalSwap = 0;
+    SECTIONS_DEF.forEach(s => {
+      const st = appState[s.id];
+      totalStickers += s.stickers.length;
+      totalNeed += st.need.length;
+      totalSwap += st.swaps.length;
+      totalHave += (s.stickers.length - st.need.length);
+    });
+    document.getElementById('statsBar').innerHTML = `
+      <div class="stat collected"><span class="stat-val">${totalHave}</span><span class="stat-label">Tengo</span></div>
+      <div class="stat needed"><span class="stat-val">${totalNeed}</span><span class="stat-label">Me faltan</span></div>
+      <div class="stat swaps"><span class="stat-val">${totalSwap}</span><span class="stat-label">Cambios</span></div>
+      <div class="stat total"><span class="stat-val">${totalStickers}</span><span class="stat-label">Total álbum</span></div>
+      <div class="stat" style="flex:1;min-width:140px;align-items:flex-start;">
+        <span class="stat-val" style="color:#818cf8;font-size:1rem">${((totalHave/totalStickers)*100).toFixed(1)}%</span>
+        <div style="width:100%;background:#334155;border-radius:4px;height:8px;margin-top:6px">
+          <div style="width:${(totalHave/totalStickers)*100}%;background:linear-gradient(90deg,#16a34a,#4ade80);height:100%;border-radius:4px;transition:width 0.4s"></div>
+        </div>
+        <span class="stat-label">Completado</span>
+      </div>
+    `;
+  }
+
+  function renderSections(query) {
+    const container = document.getElementById('sections');
+    const filtered = SECTIONS_DEF.filter(s => {
+      const st = appState[s.id];
+      const matchesSearch = !query || s.name.toLowerCase().includes(query) || s.code.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+      if (filter === 'need') return st.need.length > 0;
+      if (filter === 'done') return st.need.length === 0;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-msg">No se encontraron secciones</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(s => {
+      const st = appState[s.id];
+      const pct = ((s.stickers.length - st.need.length) / s.stickers.length * 100).toFixed(0);
+      const done = st.need.length === 0;
+      const badge = done
+        ? `<span class="card-badge badge-done">✓ Completo</span>`
+        : `<span class="card-badge badge-need">${st.need.length} faltan</span>`;
+      const swapBadge = st.swaps.length > 0
+        ? `<span class="card-badge" style="background:#d9770622;color:#fbbf24;border:1px solid #d9770644;margin-left:4px">${st.swaps.length} cambios</span>`
+        : '';
+      const grid = s.stickers.map(num => {
+        const state = getStickerState(s.id, num);
+        return `<div class="sticker ${state}" onclick="toggleSticker('${s.id}','${num}')" title="${s.code} #${num} — ${state==='need'?'Click para marcar como conseguida':state==='swap'?'Click para quitar como cambio':'Click para marcar como cambio'}">${num}</div>`;
+      }).join('');
+      return `
+        <div class="section-card ${done?'all-done':''}">
+          <div class="card-header">
+            <span class="card-flag">${s.emoji}</span>
+            <div class="card-info">
+              <div class="card-name">${s.name}</div>
+              <div class="card-sub">${s.code} · ${s.stickers.length - st.need.length}/${s.stickers.length}</div>
+            </div>
+            ${badge}${swapBadge}
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="sticker-grid">${grid}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderSwapsPanel() {
+    const panel = document.getElementById('swapsPanel');
+    const withSwaps = SECTIONS_DEF.filter(s => appState[s.id].swaps.length > 0);
+    if (withSwaps.length === 0) {
+      panel.innerHTML = '<div class="empty-msg">No tienes figuritas para cambio por el momento.</div>';
+      return;
+    }
+    panel.innerHTML = `
+      <h2 style="font-size:1.1rem;font-weight:700;color:#fbbf24;margin-bottom:16px">🔁 Mis figuritas disponibles para cambio</h2>
+      ${withSwaps.map(s => `
+        <div class="swap-group">
+          <div class="swap-group-header">${s.emoji} ${s.name} <span style="color:#475569">(${appState[s.id].swaps.length})</span></div>
+          <div class="swap-numbers">
+            ${appState[s.id].swaps.map(n => `
+              <div class="sticker swap" onclick="toggleSticker('${s.id}','${n}')" title="Quitar como cambio">${n}</div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  // ─── TOAST ──────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  function confirmReset() {
+    if (confirm('¿Resetear todo al estado inicial? Perderás los cambios que hayas hecho.')) {
+      localStorage.removeItem(STORAGE_KEY);
+      appState = loadState();
+      render();
+      showToast('↺ Reseteado al estado inicial');
+    }
+  }
+
+  // ─── INIT ────────────────────────────────────────────────────────────────
+  render();
+  </script>
+</body>
+</html>
