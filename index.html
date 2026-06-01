@@ -134,10 +134,32 @@
   <div class="swaps-panel" id="swapsPanel"></div>
 
   <div class="trade-panel" id="tradePanel">
-    <h2 style="font-size:1.05rem;font-weight:800;color:#4ade80;margin-bottom:4px">🔁 Buscador de Intercambio</h2>
-    <p style="font-size:0.8rem;color:var(--muted);margin-bottom:14px">Pega la lista de figuritas de la otra persona (mismo formato que la app) y verás exactamente qué pueden intercambiar.</p>
-    <div class="trade-label">Lista de la otra persona:</div>
-    <textarea class="trade-textarea" id="tradePaste" placeholder="Pega aquí su lista...&#10;&#10;I need&#10;MEX 🇲🇽: 3, 7, 12&#10;ARG 🇦🇷: 5, 9&#10;&#10;Swaps&#10;BRA 🇧🇷: 2, 14&#10;ESP 🇪🇸: 1, 8"></textarea>
+    <h2 style="font-size:1.05rem;font-weight:800;color:#4ade80;margin-bottom:12px">🔁 Buscador de Intercambio</h2>
+
+    <!-- How to share MY list -->
+    <div style="background:#0d1f16;border:1px solid #16a34a33;border-radius:10px;padding:14px;margin-bottom:18px">
+      <div style="font-size:0.8rem;font-weight:700;color:#4ade80;margin-bottom:6px">📤 ¿Quieres compartir TU lista con alguien?</div>
+      <p style="font-size:0.76rem;color:var(--muted);line-height:1.6;margin-bottom:8px">Diles que te manden lo que <strong style="color:#f1f5f9">necesitan</strong> y lo que tienen <strong style="color:#f1f5f9">de más</strong> en cualquiera de estos formatos:</p>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="background:#1e293b;border-radius:6px;padding:8px 10px;font-family:monospace;font-size:0.74rem;color:#94a3b8">
+          <span style="color:#4ade80">Formato 1</span> — compacto (el más fácil de enviar por WhatsApp)<br>
+          <span style="color:#fbbf24">MEX7<br>MEX11<br>ARG5</span>
+        </div>
+        <div style="background:#1e293b;border-radius:6px;padding:8px 10px;font-family:monospace;font-size:0.74rem;color:#94a3b8">
+          <span style="color:#4ade80">Formato 2</span> — con coma<br>
+          <span style="color:#fbbf24">MEX: 7, 11<br>ARG: 5, 9</span>
+        </div>
+        <div style="background:#1e293b;border-radius:6px;padding:8px 10px;font-family:monospace;font-size:0.74rem;color:#94a3b8">
+          <span style="color:#4ade80">Formato 3</span> — export de la app (con emoji)<br>
+          <span style="color:#fbbf24">I need<br>MEX 🇲🇽: 7, 11<br><br>Swaps<br>ARG 🇦🇷: 15, 20</span>
+        </div>
+      </div>
+      <p style="font-size:0.74rem;color:var(--muted);margin-top:8px">💡 Si solo pegan sus <strong style="color:#f1f5f9">necesidades</strong> sin sección "Swaps", el sistema asume que todo es lo que necesitan.</p>
+    </div>
+
+    <!-- Paste area -->
+    <div class="trade-label" style="font-weight:700;color:#f1f5f9;font-size:0.85rem;margin-bottom:6px">📋 Pega la lista de la otra persona aquí:</div>
+    <textarea class="trade-textarea" id="tradePaste" placeholder="Pega aquí lo que te enviaron...&#10;&#10;Ejemplos válidos:&#10;  MEX7&#10;  MEX11&#10;  ARG5&#10;&#10;— o —&#10;&#10;  I need&#10;  MEX 🇲🇽: 7, 11&#10;  Swaps&#10;  ARG 🇦🇷: 15, 20"></textarea>
     <button class="trade-analyze-btn" onclick="analyzeTrade()">🔍 Analizar intercambio</button>
     <div id="tradeResult"></div>
   </div>
@@ -416,19 +438,45 @@
 
   function parsePastedList(text) {
     const result = { need: {}, swaps: {} };
-    let section = null;
+    let section = 'need'; // default: assume everything is "need" unless headers say otherwise
     for (const raw of text.split('\n')) {
       const line = raw.trim();
       if (!line) continue;
       const lower = line.toLowerCase();
       if (lower.includes('i need') || lower === 'need') { section = 'need'; continue; }
       if (lower.includes('swap')) { section = 'swaps'; continue; }
-      if (!section) continue;
-      const m = line.match(/^([A-Z]{2,4})\s+([^:]+):\s+(.+)$/);
-      if (!m) continue;
-      const id = codeToId(m[1].trim(), m[2].trim());
-      if (!id) continue;
-      result[section][id] = m[3].split(',').map(n => n.trim()).filter(Boolean);
+
+      // Format 1 — standard app export: "MEX 🇲🇽: 7, 11, 15"
+      const m1 = line.match(/^([A-Z]{2,4})\s+([^:]+):\s+(.+)$/);
+      if (m1) {
+        const id = codeToId(m1[1].trim(), m1[2].trim());
+        if (id) {
+          if (!result[section][id]) result[section][id] = [];
+          result[section][id].push(...m1[3].split(',').map(n => n.trim()).filter(Boolean));
+        }
+        continue;
+      }
+
+      // Format 2 — compact: "MEX7" or "MEX11" (code glued to number)
+      const m2 = line.match(/^([A-Z]{2,4})(\d+)$/);
+      if (m2) {
+        const id = codeToId(m2[1], '');
+        if (id) {
+          if (!result[section][id]) result[section][id] = [];
+          result[section][id].push(m2[2]);
+        }
+        continue;
+      }
+
+      // Format 3 — "MEX: 7, 11" (code + colon, no emoji)
+      const m3 = line.match(/^([A-Z]{2,4}):\s+(.+)$/);
+      if (m3) {
+        const id = codeToId(m3[1], '');
+        if (id) {
+          if (!result[section][id]) result[section][id] = [];
+          result[section][id].push(...m3[2].split(',').map(n => n.trim()).filter(Boolean));
+        }
+      }
     }
     return result;
   }
