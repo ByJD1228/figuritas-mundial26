@@ -16,9 +16,15 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; }
 
-    header { background: linear-gradient(135deg, #064e3b, #065f46); padding: 20px 24px; }
+    header { background: linear-gradient(135deg, #064e3b, #065f46); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     header h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
     header p { color: #a7f3d0; font-size: 0.85rem; margin-top: 2px; }
+    .lock-btn { background: #0f2e1f; border: 1px solid #16a34a44; border-radius: 10px; padding: 8px 14px; color: #4ade80; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; flex-shrink: 0; transition: all 0.2s; }
+    .lock-btn:hover { background: #0d3d22; border-color: #16a34a; }
+    .lock-btn.unlocked { background: #16a34a22; border-color: #16a34a; color: #4ade80; }
+    .locked-overlay { pointer-events: none; opacity: 0.6; cursor: default; }
+    body.locked .sticker { cursor: default; }
+    body.locked .sticker:hover { transform: none; }
 
     .stats-bar { display: flex; gap: 12px; padding: 16px 24px; background: var(--surface); border-bottom: 1px solid #334155; flex-wrap: wrap; }
     .stat { display: flex; flex-direction: column; align-items: center; background: var(--card); border-radius: 10px; padding: 10px 18px; min-width: 90px; }
@@ -114,8 +120,11 @@
 </head>
 <body>
   <header>
-    <h1>🏆 Figuritas — Mundial USA·MEX·CAN 2026</h1>
-    <p>Haz clic en una figurita roja para marcarla como conseguida</p>
+    <div>
+      <h1>🏆 Figuritas — Mundial USA·MEX·CAN 2026</h1>
+      <p id="headerSub">🔒 Modo lectura — solo el dueño puede editar</p>
+    </div>
+    <button class="lock-btn" id="lockBtn" onclick="toggleLock()">🔒 Admin</button>
   </header>
 
   <div class="stats-bar" id="statsBar"></div>
@@ -230,6 +239,48 @@
     { id:'pan',  code:'PAN', emoji:'🇵🇦', name:'Panamá',      stickers:r(1,20), initNeed:['4','6','7','11','16','19','20'], initSwaps:['9','12'] },
   ];
 
+  // ─── AUTH ────────────────────────────────────────────────────────────────
+  const ADMIN_PIN = '1228';
+  let editMode = sessionStorage.getItem('figuritas_edit') === '1';
+
+  function applyLockState() {
+    const btn = document.getElementById('lockBtn');
+    const sub = document.getElementById('headerSub');
+    const resetBtn = document.getElementById('resetBtn');
+    if (editMode) {
+      document.body.classList.remove('locked');
+      btn.textContent = '🔓 Admin';
+      btn.classList.add('unlocked');
+      sub.textContent = '✏️ Modo edición activo — eres el dueño';
+      resetBtn.style.display = '';
+    } else {
+      document.body.classList.add('locked');
+      btn.textContent = '🔒 Admin';
+      btn.classList.remove('unlocked');
+      sub.textContent = '🔒 Modo lectura — solo el dueño puede editar';
+      resetBtn.style.display = 'none';
+    }
+  }
+
+  function toggleLock() {
+    if (editMode) {
+      editMode = false;
+      sessionStorage.removeItem('figuritas_edit');
+      applyLockState();
+      showToast('🔒 Modo edición desactivado');
+    } else {
+      const pin = prompt('Ingresa el PIN de administrador:');
+      if (pin === ADMIN_PIN) {
+        editMode = true;
+        sessionStorage.setItem('figuritas_edit', '1');
+        applyLockState();
+        showToast('🔓 Modo edición activado');
+      } else if (pin !== null) {
+        showToast('❌ PIN incorrecto');
+      }
+    }
+  }
+
   // ─── STATE ──────────────────────────────────────────────────────────────
   const STORAGE_KEY = 'figuritas_mundial26_v3';
 
@@ -259,6 +310,7 @@
   }
 
   function toggleSticker(sectionId, num) {
+    if (!editMode) { showToast('🔒 Ingresa el PIN para editar'); return; }
     const s = appState[sectionId];
     const state = getStickerState(sectionId, num);
     if (state === 'need') {
@@ -414,6 +466,7 @@
   }
 
   function confirmReset() {
+    if (!editMode) return;
     if (confirm('¿Resetear todo al estado inicial? Perderás los cambios que hayas hecho.')) {
       localStorage.removeItem(STORAGE_KEY);
       appState = loadState();
@@ -671,6 +724,7 @@
   }
 
   // ─── INIT ────────────────────────────────────────────────────────────────
+  applyLockState();
   render();
   </script>
 </body>
