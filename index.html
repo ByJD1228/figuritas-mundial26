@@ -77,6 +77,39 @@
     .empty-msg { text-align: center; padding: 40px; color: var(--muted); font-size: 0.9rem; }
     .toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; opacity: 0; transform: translateY(10px); transition: all 0.25s; pointer-events: none; z-index: 999; }
     .toast.show { opacity: 1; transform: none; }
+
+    /* ── Trade Finder ── */
+    .trade-panel { display: none; padding: 20px 24px; max-width: 860px; }
+    .trade-panel.visible { display: block; }
+    .trade-label { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+    .trade-textarea { width: 100%; background: var(--surface); border: 1px solid #334155; border-radius: 10px; padding: 12px; color: var(--text); font-size: 0.78rem; font-family: monospace; resize: vertical; min-height: 160px; outline: none; line-height: 1.5; }
+    .trade-textarea:focus { border-color: #4ade80; }
+    .trade-analyze-btn { margin-top: 10px; background: #16a34a; color: white; border: none; border-radius: 8px; padding: 9px 22px; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
+    .trade-analyze-btn:hover { background: #15803d; }
+    .trade-result { margin-top: 20px; }
+    .trade-counter { background: var(--card); border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .trade-counter-num { font-size: 1.2rem; font-weight: 800; }
+    .trade-warn { background: #92400e22; border: 1px solid #92400e55; color: #fcd34d; border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; margin-bottom: 12px; line-height: 1.5; }
+    .trade-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    @media(max-width:600px){ .trade-cols { grid-template-columns: 1fr; } }
+    .trade-col { background: var(--surface); border-radius: 10px; padding: 14px; border: 1px solid #334155; }
+    .trade-col-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+    .trade-col.give .trade-col-title { color: #4ade80; }
+    .trade-col.get  .trade-col-title { color: #fbbf24; }
+    .trade-group { margin-bottom: 10px; }
+    .trade-group-name { font-size: 0.76rem; color: var(--muted); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+    .trade-sticker-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .ts { width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 700; border: 1px solid transparent; user-select: none; transition: all 0.15s; }
+    .ts.fixed    { background: #16a34a22; color: #4ade80; border-color: #16a34a44; cursor: default; }
+    .ts.pick     { background: #d9770622; color: #fbbf24; border-color: #d9770644; cursor: pointer; }
+    .ts.pick:hover { border-color: #fbbf24; transform: scale(1.1); }
+    .ts.chosen   { background: #16a34a; color: white; border-color: #16a34a; cursor: pointer; }
+    .ts.chosen:hover { transform: scale(1.1); }
+    .trade-summary { background: #0d1f16; border: 1px solid #16a34a44; border-radius: 10px; padding: 14px; margin-top: 4px; }
+    .trade-summary pre { font-family: monospace; font-size: 0.77rem; white-space: pre-wrap; color: #a7f3d0; line-height: 1.7; }
+    .copy-trade-btn { margin-top: 10px; background: #7c3aed; color: white; border: none; border-radius: 8px; padding: 8px 18px; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+    .copy-trade-btn:hover { background: #6d28d9; }
+    .trade-sel-badge { margin-left: auto; background: #16a34a22; border: 1px solid #16a34a44; border-radius: 8px; padding: 5px 12px; font-size: 0.78rem; color: #4ade80; }
   </style>
 </head>
 <body>
@@ -93,11 +126,21 @@
     <button class="filter-btn" onclick="setFilter('need',this)">Me faltan</button>
     <button class="filter-btn" onclick="setFilter('swaps',this)">Mis cambios</button>
     <button class="filter-btn" onclick="setFilter('done',this)">Completos</button>
+    <button class="filter-btn" onclick="setFilter('trade',this)">🔁 Intercambio</button>
     <button class="filter-btn" id="resetBtn" onclick="confirmReset()" style="margin-left:auto;color:#f87171">Resetear</button>
   </div>
 
   <div class="sections" id="sections"></div>
   <div class="swaps-panel" id="swapsPanel"></div>
+
+  <div class="trade-panel" id="tradePanel">
+    <h2 style="font-size:1.05rem;font-weight:800;color:#4ade80;margin-bottom:4px">🔁 Buscador de Intercambio</h2>
+    <p style="font-size:0.8rem;color:var(--muted);margin-bottom:14px">Pega la lista de figuritas de la otra persona (mismo formato que la app) y verás exactamente qué pueden intercambiar.</p>
+    <div class="trade-label">Lista de la otra persona:</div>
+    <textarea class="trade-textarea" id="tradePaste" placeholder="Pega aquí su lista...&#10;&#10;I need&#10;MEX 🇲🇽: 3, 7, 12&#10;ARG 🇦🇷: 5, 9&#10;&#10;Swaps&#10;BRA 🇧🇷: 2, 14&#10;ESP 🇪🇸: 1, 8"></textarea>
+    <button class="trade-analyze-btn" onclick="analyzeTrade()">🔍 Analizar intercambio</button>
+    <div id="tradeResult"></div>
+  </div>
 
   <div class="legend">
     <span class="legend-item"><span class="legend-dot dot-have"></span> Tengo</span>
@@ -117,7 +160,7 @@
     { id:'fwc3', code:'FWC', emoji:'📜', name:'FWC Scroll',   stickers:r(1,20),           initNeed:['18','19'],         initSwaps:['10','11','12','13','14'] },
     { id:'mex',  code:'MEX', emoji:'🇲🇽', name:'México',      stickers:r(1,20), initNeed:['15','16','17','18'], initSwaps:['9'] },
     { id:'rsa',  code:'RSA', emoji:'🇿🇦', name:'Sudáfrica',   stickers:r(1,20), initNeed:['6','10','11','13','14','16'], initSwaps:['1','2','3','4','5','8','17','20'] },
-    { id:'kor',  code:'KOR', emoji:'🇰🇷', name:'Corea del Sur', stickers:r(1,20), initNeed:['2','4','5','6','7','9','11','13','14','16','18'], initSwaps:['15','19'] },
+    { id:'kor',  code:'KOR', emoji:'🇰🇷', name:'Corea del Sur', stickers:r(1,20), initNeed:['2','4','5','6','7','9','11','13','14','16','18'], initSwaps:['19'] },
     { id:'cze',  code:'CZE', emoji:'🇨🇿', name:'República Checa', stickers:r(1,20), initNeed:['1','3','6','10','14','15','16','17'], initSwaps:['4','11'] },
     { id:'can',  code:'CAN', emoji:'🇨🇦', name:'Canadá',      stickers:r(1,20), initNeed:['2','4','6','10','11','13','15','18','19'], initSwaps:[] },
     { id:'bih',  code:'BIH', emoji:'🇧🇦', name:'Bosnia y Herz.', stickers:r(1,20), initNeed:['3','6','7','10','11','13','15','16'], initSwaps:[] },
@@ -126,10 +169,10 @@
     { id:'bra',  code:'BRA', emoji:'🇧🇷', name:'Brasil',      stickers:r(1,20), initNeed:['1','5','9','12','15','17','18'], initSwaps:['2','6','16'] },
     { id:'mar',  code:'MAR', emoji:'🇲🇦', name:'Marruecos',   stickers:r(1,20), initNeed:['1','5','8','9','12','13','17','18'], initSwaps:['6','7','11','15','19','20'] },
     { id:'hai',  code:'HAI', emoji:'🇭🇹', name:'Haití',       stickers:r(1,20), initNeed:['1','4','6','7','8','10','11','17','19','20'], initSwaps:['2','15'] },
-    { id:'sco',  code:'SCO', emoji:'🏴󠁧󠁢󠁳󠁣󠁴󠁿', name:'Escocia',   stickers:r(1,20), initNeed:['5','11','14','15','16'], initSwaps:['3','8','9'] },
+    { id:'sco',  code:'SCO', emoji:'🏴󠁧󠁢󠁳󠁣󠁴󠁿', name:'Escocia',   stickers:r(1,20), initNeed:['5','11','14','15','16'], initSwaps:['3','8'] },
     { id:'usa',  code:'USA', emoji:'🇺🇸', name:'Estados Unidos', stickers:r(1,20), initNeed:['1','2','13','17','18'], initSwaps:['16'] },
     { id:'par',  code:'PAR', emoji:'🇵🇾', name:'Paraguay',    stickers:r(1,20), initNeed:['4','5','6','7','8','10','15','19'], initSwaps:['3','16','20'] },
-    { id:'aus',  code:'AUS', emoji:'🇦🇺', name:'Australia',   stickers:r(1,20), initNeed:['1','13'], initSwaps:['5','8','12','14','17','18'] },
+    { id:'aus',  code:'AUS', emoji:'🇦🇺', name:'Australia',   stickers:r(1,20), initNeed:['1','13'], initSwaps:['5','8','12','14','17'] },
     { id:'tur',  code:'TUR', emoji:'🇹🇷', name:'Turquía',     stickers:r(1,20), initNeed:['1','4','5','8','9','10','12','13','14','17','18'], initSwaps:['2','20'] },
     { id:'ger',  code:'GER', emoji:'🇩🇪', name:'Alemania',    stickers:r(1,20), initNeed:['4','5','12','13','14','17','19'], initSwaps:['11'] },
     { id:'cuw',  code:'CUW', emoji:'🇨🇼', name:'Curazao',     stickers:r(1,20), initNeed:['3','4','5','10','12','13','14'], initSwaps:['11'] },
@@ -138,7 +181,7 @@
     { id:'ned',  code:'NED', emoji:'🇳🇱', name:'Países Bajos', stickers:r(1,20), initNeed:['2','5','6','10','14','15','16','17','18','19','20'], initSwaps:[] },
     { id:'jpn',  code:'JPN', emoji:'🇯🇵', name:'Japón',       stickers:r(1,20), initNeed:['2','3','5','6','7','8','9','10','12','15','17'], initSwaps:['4','13','19'] },
     { id:'swe',  code:'SWE', emoji:'🇸🇪', name:'Suecia',      stickers:r(1,20), initNeed:['1','2','3','6','7','10','11','13','15','16','19','20'], initSwaps:['18'] },
-    { id:'tun',  code:'TUN', emoji:'🇹🇳', name:'Túnez',       stickers:r(1,20), initNeed:['12','13','14','17','18','19'], initSwaps:['1'] },
+    { id:'tun',  code:'TUN', emoji:'🇹🇳', name:'Túnez',       stickers:r(1,20), initNeed:['12','13','14','17','18','19'], initSwaps:[] },
     { id:'bel',  code:'BEL', emoji:'🇧🇪', name:'Bélgica',     stickers:r(1,20), initNeed:['4','6','16','18','20'], initSwaps:['9','12','14','17'] },
     { id:'egy',  code:'EGY', emoji:'🇪🇬', name:'Egipto',      stickers:r(1,20), initNeed:['1','5','8','10','11','14','17','18','20'], initSwaps:['15','16'] },
     { id:'irn',  code:'IRN', emoji:'🇮🇷', name:'Irán',        stickers:r(1,20), initNeed:['3','6','7','10','11','16','19','20'], initSwaps:['4','5','8','12','17','18'] },
@@ -150,23 +193,23 @@
     { id:'fra',  code:'FRA', emoji:'🇫🇷', name:'Francia',     stickers:r(1,20), initNeed:['2','3','5','11','13','19','20'], initSwaps:['4','18'] },
     { id:'sen',  code:'SEN', emoji:'🇸🇳', name:'Senegal',     stickers:r(1,20), initNeed:['4','5','7','8','9','10','11','12','13','14','17','18'], initSwaps:['1','2','19'] },
     { id:'irq',  code:'IRQ', emoji:'🇮🇶', name:'Irak',        stickers:r(1,20), initNeed:['1','5','6','8','9','12','13','14','17','18'], initSwaps:['2'] },
-    { id:'nor',  code:'NOR', emoji:'🇳🇴', name:'Noruega',     stickers:r(1,20), initNeed:['3','4','5','8','12','16','17','18','20'], initSwaps:['1'] },
-    { id:'arg',  code:'ARG', emoji:'🇦🇷', name:'Argentina',   stickers:r(1,20), initNeed:['1','4'], initSwaps:['7','11','15','16','19','20'] },
+    { id:'nor',  code:'NOR', emoji:'🇳🇴', name:'Noruega',     stickers:r(1,20), initNeed:['3','4','5','8','12','16','17','18','20'], initSwaps:[] },
+    { id:'arg',  code:'ARG', emoji:'🇦🇷', name:'Argentina',   stickers:r(1,20), initNeed:['1','4'], initSwaps:['7','11','15','19'] },
     { id:'alg',  code:'ALG', emoji:'🇩🇿', name:'Argelia',     stickers:r(1,20), initNeed:['7','11','16','20'], initSwaps:['5','14'] },
     { id:'aut',  code:'AUT', emoji:'🇦🇹', name:'Austria',     stickers:r(1,20), initNeed:['1','4','10','12','13'], initSwaps:['2','3','6','7'] },
     { id:'jor',  code:'JOR', emoji:'🇯🇴', name:'Jordania',    stickers:r(1,20), initNeed:['8','9','11','12','14','16','20'], initSwaps:['2','6','10','15','19'] },
-    { id:'por',  code:'POR', emoji:'🇵🇹', name:'Portugal',    stickers:r(1,20), initNeed:['2','4','6','7','8','9','10','11','12','14','17'], initSwaps:['1'] },
-    { id:'cod',  code:'COD', emoji:'🇨🇩', name:'Rep. D. Congo', stickers:r(1,20), initNeed:['8','9','10','14','18','20'], initSwaps:['1','16','17'] },
+    { id:'por',  code:'POR', emoji:'🇵🇹', name:'Portugal',    stickers:r(1,20), initNeed:['2','4','6','7','8','9','10','11','12','14','17'], initSwaps:[] },
+    { id:'cod',  code:'COD', emoji:'🇨🇩', name:'Rep. D. Congo', stickers:r(1,20), initNeed:['8','9','10','14','18','20'], initSwaps:['16','17'] },
     { id:'uzb',  code:'UZB', emoji:'🇺🇿', name:'Uzbekistán',  stickers:r(1,20), initNeed:['1','2','3','5','6','7','9','10','11','13','15','16','17','19','20'], initSwaps:[] },
     { id:'col',  code:'COL', emoji:'🇨🇴', name:'Colombia',    stickers:r(1,20), initNeed:['1','2','4','5','6','8','9','10','12','14','15','17','18','20'], initSwaps:['13'] },
     { id:'eng',  code:'ENG', emoji:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', name:'Inglaterra', stickers:r(1,20), initNeed:['3','7','10','11','15','19','20'], initSwaps:['5','8','9','12','17','18'] },
     { id:'cro',  code:'CRO', emoji:'🇭🇷', name:'Croacia',     stickers:r(1,20), initNeed:['1','2','5','6','9','10','12','13','16','18','19','20'], initSwaps:['4','17'] },
-    { id:'gha',  code:'GHA', emoji:'🇬🇭', name:'Ghana',       stickers:r(1,20), initNeed:['1','2','4','6','8','10','17','18'], initSwaps:['14'] },
-    { id:'pan',  code:'PAN', emoji:'🇵🇦', name:'Panamá',      stickers:r(1,20), initNeed:['4','6','7','11','16','19','20'], initSwaps:['9','12','14','17','18'] },
+    { id:'gha',  code:'GHA', emoji:'🇬🇭', name:'Ghana',       stickers:r(1,20), initNeed:['1','2','4','6','8','10','17','18'], initSwaps:[] },
+    { id:'pan',  code:'PAN', emoji:'🇵🇦', name:'Panamá',      stickers:r(1,20), initNeed:['4','6','7','11','16','19','20'], initSwaps:['9','12'] },
   ];
 
   // ─── STATE ──────────────────────────────────────────────────────────────
-  const STORAGE_KEY = 'figuritas_mundial26_v2';
+  const STORAGE_KEY = 'figuritas_mundial26_v3';
 
   function loadState() {
     try {
@@ -223,15 +266,26 @@
   function render() {
     renderStats();
     const query = document.getElementById('search').value.toLowerCase();
+    const sections  = document.getElementById('sections');
+    const swapsPane = document.getElementById('swapsPanel');
+    const tradePane = document.getElementById('tradePanel');
 
     if (filter === 'swaps') {
-      document.getElementById('sections').style.display = 'none';
-      document.getElementById('swapsPanel').classList.add('visible');
+      sections.style.display = 'none';
+      swapsPane.classList.add('visible');
+      tradePane.classList.remove('visible');
       renderSwapsPanel();
       return;
     }
-    document.getElementById('sections').style.display = '';
-    document.getElementById('swapsPanel').classList.remove('visible');
+    if (filter === 'trade') {
+      sections.style.display = 'none';
+      swapsPane.classList.remove('visible');
+      tradePane.classList.add('visible');
+      return;
+    }
+    sections.style.display = '';
+    swapsPane.classList.remove('visible');
+    tradePane.classList.remove('visible');
     renderSections(query);
   }
 
@@ -344,6 +398,228 @@
       render();
       showToast('↺ Reseteado al estado inicial');
     }
+  }
+
+  // ─── TRADE FINDER ────────────────────────────────────────────────────────
+  let tradeCtx = { canGive: {}, canGet: {}, giveTotal: 0, getTotal: 0, limit: 0, selectedGive: new Set(), selectedGet: new Set() };
+
+  function codeToId(code, emojiPart) {
+    if (code === 'FWC') {
+      if (emojiPart.includes('🏆')) return 'fwc1';
+      if (emojiPart.includes('🌎')) return 'fwc2';
+      if (emojiPart.includes('📜')) return 'fwc3';
+      return null;
+    }
+    const def = SECTIONS_DEF.find(s => s.code === code);
+    return def ? def.id : null;
+  }
+
+  function parsePastedList(text) {
+    const result = { need: {}, swaps: {} };
+    let section = null;
+    for (const raw of text.split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+      const lower = line.toLowerCase();
+      if (lower.includes('i need') || lower === 'need') { section = 'need'; continue; }
+      if (lower.includes('swap')) { section = 'swaps'; continue; }
+      if (!section) continue;
+      const m = line.match(/^([A-Z]{2,4})\s+([^:]+):\s+(.+)$/);
+      if (!m) continue;
+      const id = codeToId(m[1].trim(), m[2].trim());
+      if (!id) continue;
+      result[section][id] = m[3].split(',').map(n => n.trim()).filter(Boolean);
+    }
+    return result;
+  }
+
+  function tcount(obj) { return Object.values(obj).reduce((s, a) => s + a.length, 0); }
+
+  function analyzeTrade() {
+    const text = document.getElementById('tradePaste').value.trim();
+    if (!text) { showToast('Pega una lista primero'); return; }
+    const parsed = parsePastedList(text);
+
+    const canGive = {}, canGet = {};
+    SECTIONS_DEF.forEach(s => {
+      const mySwaps   = appState[s.id].swaps;
+      const myNeed    = appState[s.id].need;
+      const theirNeed  = parsed.need[s.id]  || [];
+      const theirSwaps = parsed.swaps[s.id] || [];
+      const give = mySwaps.filter(n => theirNeed.includes(n));
+      const get  = theirSwaps.filter(n => myNeed.includes(n));
+      if (give.length) canGive[s.id] = give;
+      if (get.length)  canGet[s.id]  = get;
+    });
+
+    const giveTotal = tcount(canGive), getTotal = tcount(canGet);
+    const limit = Math.min(giveTotal, getTotal);
+    const selGive = new Set(), selGet = new Set();
+
+    if (giveTotal === 0 && getTotal === 0) {
+      document.getElementById('tradeResult').innerHTML = `<div class="trade-warn" style="margin-top:12px">❌ No hay figuritas en común para intercambiar con esta persona.</div>`;
+      return;
+    }
+
+    // Pre-select the fixed (smaller or equal) side
+    if (giveTotal <= getTotal) {
+      Object.entries(canGive).forEach(([sid, nums]) => nums.forEach(n => selGive.add(sid+':'+n)));
+    }
+    if (getTotal <= giveTotal) {
+      Object.entries(canGet).forEach(([sid, nums]) => nums.forEach(n => selGet.add(sid+':'+n)));
+    }
+
+    tradeCtx = { canGive, canGet, giveTotal, getTotal, limit, selectedGive: selGive, selectedGet: selGet };
+    renderTradeResult();
+  }
+
+  function toggleTS(side, sid, num) {
+    const { giveTotal, getTotal, limit, selectedGive, selectedGet } = tradeCtx;
+    const key = sid+':'+num;
+    // Determine which side is selectable
+    const giveSel = giveTotal > getTotal; // give side is the large selectable side
+    const getSel  = getTotal > giveTotal;
+    if (side === 'give' && !giveSel) return;
+    if (side === 'get'  && !getSel)  return;
+    const set = side === 'give' ? selectedGive : selectedGet;
+    if (set.has(key)) { set.delete(key); }
+    else {
+      if (set.size >= limit) { showToast(`Máximo ${limit} — intercambio equilibrado`); return; }
+      set.add(key);
+    }
+    renderTradeResult();
+  }
+
+  function renderTradeResult() {
+    const { canGive, canGet, giveTotal, getTotal, limit, selectedGive, selectedGet } = tradeCtx;
+    const giveSel = giveTotal > getTotal;
+    const getSel  = getTotal > giveTotal;
+
+    const selGiveCount = giveSel ? selectedGive.size : giveTotal;
+    const selGetCount  = getSel  ? selectedGet.size  : getTotal;
+    const balanced = limit > 0 && selGiveCount === limit && selGetCount === limit;
+
+    // Build give column HTML
+    const giveColHtml = Object.entries(canGive).map(([sid, nums]) => {
+      const def = SECTIONS_DEF.find(s => s.id === sid);
+      const pills = nums.map(n => {
+        const key = sid+':'+n;
+        const inSet = selectedGive.has(key);
+        let cls, click = '';
+        if (giveSel) { cls = inSet ? 'ts chosen' : 'ts pick'; click = `onclick="toggleTS('give','${sid}','${n}')"` }
+        else         { cls = 'ts fixed'; }
+        return `<div class="${cls}" ${click}>${n}</div>`;
+      }).join('');
+      return `<div class="trade-group"><div class="trade-group-name">${def.emoji} ${def.name}</div><div class="trade-sticker-row">${pills}</div></div>`;
+    }).join('') || `<div style="color:var(--muted);font-size:.8rem">Ninguna en común</div>`;
+
+    // Build get column HTML
+    const getColHtml = Object.entries(canGet).map(([sid, nums]) => {
+      const def = SECTIONS_DEF.find(s => s.id === sid);
+      const pills = nums.map(n => {
+        const key = sid+':'+n;
+        const inSet = selectedGet.has(key);
+        let cls, click = '';
+        if (getSel) { cls = inSet ? 'ts chosen' : 'ts pick'; click = `onclick="toggleTS('get','${sid}','${n}')"` }
+        else        { cls = 'ts fixed'; }
+        return `<div class="${cls}" ${click}>${n}</div>`;
+      }).join('');
+      return `<div class="trade-group"><div class="trade-group-name">${def.emoji} ${def.name}</div><div class="trade-sticker-row">${pills}</div></div>`;
+    }).join('') || `<div style="color:var(--muted);font-size:.8rem">Ninguna en común</div>`;
+
+    // Warn text
+    let warn = '';
+    if (giveTotal > getTotal) warn = `<div class="trade-warn">⚠️ Juan tiene <strong>${giveTotal}</strong> figuritas para ti, pero tú solo tienes <strong>${getTotal}</strong> para darle. Escoge ${getTotal} de las que Juan tiene. Para más, contáctalo directamente.</div>`;
+    else if (getTotal > giveTotal) warn = `<div class="trade-warn">⚠️ Tú tienes <strong>${getTotal}</strong> para Juan, pero él solo tiene <strong>${giveTotal}</strong> para ti. Escoge cuáles ${giveTotal} le vas a dar. Para más, contáctalo directamente.</div>`;
+
+    // Give column title
+    const giveSub = giveSel ? `— escoge <strong>${limit}</strong> (${selectedGive.size}/${limit})` : `(${giveTotal} figuritas)`;
+    const getSub  = getSel  ? `— escoge <strong>${limit}</strong> (${selectedGet.size}/${limit})`  : `(${getTotal} figuritas)`;
+
+    const summaryHtml = balanced ? buildSummary() : `<div style="color:var(--muted);font-size:.8rem;margin-top:8px;text-align:center">${
+      giveSel ? `Selecciona ${limit - selectedGive.size} más de la columna izquierda para ver la propuesta` :
+      getSel  ? `Selecciona ${limit - selectedGet.size} más de la columna derecha para ver la propuesta` :
+      ''
+    }</div>`;
+
+    document.getElementById('tradeResult').innerHTML = `
+      <div class="trade-counter">
+        <div><span class="trade-counter-num" style="color:#4ade80">${giveTotal}</span><span style="color:var(--muted);font-size:.76rem;margin-left:4px">Juan puede darte</span></div>
+        <div style="color:#475569;font-size:1.1rem">⇄</div>
+        <div><span class="trade-counter-num" style="color:#fbbf24">${getTotal}</span><span style="color:var(--muted);font-size:.76rem;margin-left:4px">Tú puedes darle</span></div>
+        <div class="trade-sel-badge">🔄 Intercambio equilibrado: ${limit} c/u</div>
+      </div>
+      ${warn}
+      <div class="trade-cols">
+        <div class="trade-col give">
+          <div class="trade-col-title">📦 Juan te da ${giveSub}</div>
+          ${giveColHtml}
+        </div>
+        <div class="trade-col get">
+          <div class="trade-col-title">🎁 Tú le das a Juan ${getSub}</div>
+          ${getColHtml}
+        </div>
+      </div>
+      ${summaryHtml}
+    `;
+  }
+
+  function buildSummary() {
+    const { canGive, canGet, giveTotal, getTotal, limit, selectedGive, selectedGet } = tradeCtx;
+    const giveSel = giveTotal > getTotal;
+    const getSel  = getTotal > giveTotal;
+
+    // What Juan gives (selectedGive if give side was selectable, else all canGive)
+    const giveLines = [];
+    SECTIONS_DEF.forEach(s => {
+      let nums;
+      if (giveSel) nums = [...selectedGive].filter(k => k.startsWith(s.id+':')).map(k => k.split(':')[1]);
+      else         nums = canGive[s.id] || [];
+      if (nums.length) giveLines.push(`  ${s.emoji} ${s.name}: ${nums.join(', ')}`);
+    });
+
+    // What other person gives Juan (selectedGet if get side was selectable, else all canGet)
+    const getLines = [];
+    SECTIONS_DEF.forEach(s => {
+      let nums;
+      if (getSel) nums = [...selectedGet].filter(k => k.startsWith(s.id+':')).map(k => k.split(':')[1]);
+      else        nums = canGet[s.id] || [];
+      if (nums.length) getLines.push(`  ${s.emoji} ${s.name}: ${nums.join(', ')}`);
+    });
+
+    const txt = [
+      '📋 PROPUESTA DE INTERCAMBIO — MUNDIAL 26',
+      '='.repeat(43),
+      `Juan te da (${limit} figuritas):`,
+      ...giveLines,
+      '',
+      `Tú le das a Juan (${limit} figuritas):`,
+      ...getLines,
+      '',
+      `🔄 Intercambio equilibrado: ${limit} figuritas c/u`,
+      '¿Quieres más? Contáctale a Juan para acordar.'
+    ].join('\n');
+
+    return `
+      <div class="trade-summary">
+        <div style="font-size:.8rem;font-weight:700;color:#4ade80;margin-bottom:8px">✅ Propuesta lista — cópiala y envíasela a Juan</div>
+        <pre>${txt}</pre>
+        <button class="copy-trade-btn" onclick="copyTrade()">📋 Copiar propuesta</button>
+      </div>`;
+  }
+
+  function copyTrade() {
+    const { canGive, canGet, giveTotal, getTotal, limit, selectedGive, selectedGet } = tradeCtx;
+    const giveSel = giveTotal > getTotal, getSel = getTotal > giveTotal;
+    const giveLines = [], getLines = [];
+    SECTIONS_DEF.forEach(s => {
+      let gn = giveSel ? [...selectedGive].filter(k=>k.startsWith(s.id+':')).map(k=>k.split(':')[1]) : (canGive[s.id]||[]);
+      let rn = getSel  ? [...selectedGet].filter(k=>k.startsWith(s.id+':')).map(k=>k.split(':')[1])  : (canGet[s.id]||[]);
+      if (gn.length) giveLines.push(`  ${s.emoji} ${s.name}: ${gn.join(', ')}`);
+      if (rn.length) getLines.push(`  ${s.emoji} ${s.name}: ${rn.join(', ')}`);
+    });
+    const txt = ['📋 PROPUESTA DE INTERCAMBIO — MUNDIAL 26','='.repeat(43),`Juan te da (${limit} figuritas):`,...giveLines,'',`Tú le das a Juan (${limit} figuritas):`,...getLines,'',`🔄 Intercambio equilibrado: ${limit} figuritas c/u`,'¿Quieres más? Contáctale a Juan para acordar.'].join('\n');
+    navigator.clipboard.writeText(txt).then(() => showToast('✅ Copiado al portapapeles'));
   }
 
   // ─── INIT ────────────────────────────────────────────────────────────────
